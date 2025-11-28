@@ -1,14 +1,6 @@
 # 🍽️ Restaurant Customer Socket
 
-A real-time order management system built with Node.js, Socket.io, Express, and MySQL. Track orders from placement to delivery with live updates across customer, staff/admin dashboards.
-
-![Admin Dashboard](https://github.com/user-attachments/assets/831563ca-1bc2-4ae8-9939-818159591433)
-
-![Customer View](https://github.com/user-attachments/assets/bdfac013-0eca-47a1-9156-09c85ec0e9c9)
-
-## 🎥 Demo
-
-Watch the live demo: [https://www.awesomescreenshot.com/video/46892803?key=a176971ce12450b2bccbff4cd96bfa1d](https://www.awesomescreenshot.com/video/46892803?key=a176971ce12450b2bccbff4cd96bfa1d)
+A real-time order management system built using Node.js, Express, Socket.io, and MySQL that enables seamless tracking of orders from placement to delivery. It provides live status updates across customer and staff/admin dashboards, ensuring faster responses, better coordination, and improved operational efficiency through instant data synchronization.
 
 ## ✨ Features
 
@@ -20,6 +12,14 @@ Watch the live demo: [https://www.awesomescreenshot.com/video/46892803?key=a1769
 - **Responsive Design**: Mobile-friendly interface with Tailwind CSS
 - **Visual Feedback**: Animations, notifications, and sound alerts
 - **Order Lifecycle**: Track orders from pending → preparing → ready → delivery → delivered
+
+![Admin Dashboard](https://github.com/user-attachments/assets/831563ca-1bc2-4ae8-9939-818159591433)
+
+![Customer View](https://github.com/user-attachments/assets/bdfac013-0eca-47a1-9156-09c85ec0e9c9)
+
+## 🎥 Demo
+
+Watch the live demo: [https://www.awesomescreenshot.com/video/46892803?key=a176971ce12450b2bccbff4cd96bfa1d](https://www.awesomescreenshot.com/video/46892803?key=a176971ce12450b2bccbff4cd96bfa1d)
 
 ## 🏗️ Architecture
 
