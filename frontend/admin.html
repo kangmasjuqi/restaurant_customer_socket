@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Overview & Analytics</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Notification Toast -->
+    <div id="notification" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-purple-500 text-white px-6 py-4 rounded-lg shadow-lg">
+            <p id="notification-text" class="font-medium"></p>
+        </div>
+    </div>
+
+    <!-- Connection Status -->
+    <div class="fixed top-4 left-4 z-50">
+        <div id="connection-status" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white">
+            <div id="status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
+            <span id="status-text" class="text-sm font-medium">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard - Restaurant View</h1>
+                    <p class="text-gray-600">Complete overview and analytics</p>
+                </div>
+                <button onclick="refreshData()" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
+                    🔄 Refresh Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-gray-500 text-sm font-medium">Total Orders</p>
+                    <span class="text-2xl">📦</span>
+                </div>
+                <p class="text-3xl font-bold text-gray-800" id="stat-total">0</p>
+            </div>
+
+            <div class="bg-yellow-50 rounded-lg shadow-sm p-6 border-2 border-yellow-200">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-yellow-700 text-sm font-medium">Pending</p>
+                    <span class="text-2xl">⏳</span>
+                </div>
+                <p class="text-3xl font-bold text-yellow-700" id="stat-pending">0</p>
+            </div>
+
+            <div class="bg-blue-50 rounded-lg shadow-sm p-6 border-2 border-blue-200">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-blue-700 text-sm font-medium">In Progress</p>
+                    <span class="text-2xl">🔄</span>
+                </div>
+                <p class="text-3xl font-bold text-blue-700" id="stat-progress">0</p>
+            </div>
+
+            <div class="bg-green-50 rounded-lg shadow-sm p-6 border-2 border-green-200">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-green-700 text-sm font-medium">Completed</p>
+                    <span class="text-2xl">✅</span>
+                </div>
+                <p class="text-3xl font-bold text-green-700" id="stat-completed">0</p>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Activity</h3>
+                <div id="activity-log" class="space-y-3 max-h-64 overflow-y-auto">
+                    <p class="text-gray-500 text-center py-4">No recent activity</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">All Orders</h3>
+                <select id="status-filter" onchange="filterOrders()" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="preparing">Preparing</option>
+                    <option value="ready">Ready</option>
+                    <option value="out_for_delivery">Out for Delivery</option>
+                    <option value="delivered">Delivered</option>
+                </select>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Items</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body" class="divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">Loading orders...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio for notifications -->
+    <audio id="notification-sound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTcIGmm98OScTgwPUKnl87FjHAU7k9r0yXkqBSh+zPLaizsKElyx6OyrWBUIQ5zj8r9vIgUsgs/z2Ik3CBtqvfHnn08NEFKq5vOxYxwGOpPa9cp3KgUoft" type="audio/wav">
+    </audio>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        const SOCKET_URL = 'http://localhost:3000';
+        const socket = io(SOCKET_URL);
+        
+        let allOrders = [];
+        let activityLog = [];
+        const adminId = Math.floor(Math.random() * 1000);
+
+        // Guards
+        let isLoadingOrders = false;     // prevents concurrent loads
+        let initialLoadDone = false;     // skip noisy notifications during first load
+        let connectCount = 0;            // detect rapid reconnects
+        const MAX_QUICK_RECONNECTS = 5;  // if exceeded, stop auto-loading for a while
+
+        // Connection handling
+        socket.on('connect', () => {
+            updateConnectionStatus(true);
+
+            // detect rapid reconnect storm
+            connectCount++;
+            setTimeout(() => { connectCount = Math.max(0, connectCount - 1); }, 3000);
+
+            if (connectCount > MAX_QUICK_RECONNECTS) {
+                console.warn('Excessive reconnects detected — skipping auto-load.');
+                return;
+            }
+
+            socket.emit('join', { userId: adminId, role: 'admin' });
+            loadAllOrders();
+        });
+
+        socket.on('disconnect', () => {
+            updateConnectionStatus(false);
+        });
+
+        // Real-time events
+        socket.on('new-order', (order) => {
+            showNotification(`🆕 New Order #${order.id} from ${order.customer_name}`);
+            playNotificationSound();
+            allOrders.unshift(order);
+            addActivityLog(`New order #${order.id} created`, 'new');
+            updateDashboard();
+        });
+
+        socket.on('order-status-changed', (order) => {
+            const index = allOrders.findIndex(o => o.id === order.id);
+            if (index !== -1) {
+                allOrders[index] = order;
+                addActivityLog(`Order #${order.id} → ${order.status.replace('_', ' ')}`, 'update');
+                updateDashboard();
+            }
+        });
+
+        socket.on('user-connected', (data) => {
+            addActivityLog(`${data.role} user connected`, 'connect');
+        });
+
+        // Load all orders
+        function loadAllOrders() {
+            if (isLoadingOrders) return;
+            isLoadingOrders = true;
+
+            socket.emit('get-all-orders', (response) => {
+                try {
+                    if (response && response.success) {
+                        // dedupe by id (server may accidentally send duplicates)
+                        const incoming = response.orders || [];
+                        const map = new Map();
+                        incoming.forEach(o => map.set(o.id, o));
+                        // preserve any existing orders not in incoming? choose incoming only
+                        allOrders = Array.from(map.values());
+
+                        // mark that initial load finished (so new-order notifications are shown after)
+                        initialLoadDone = true;
+                        updateDashboard();
+                    } else {
+                        console.warn('get-all-orders failed', response);
+                    }
+                } finally {
+                    // small debounce to avoid rapid repeated hits
+                    setTimeout(() => { isLoadingOrders = false; }, 200);
+                }
+            });
+        }
+
+        // Update entire dashboard
+        function updateDashboard() {
+            updateStatistics();
+            renderOrdersTable();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = allOrders.length;
+            const pending = allOrders.filter(o => o.status === 'pending').length;
+            const inProgress = allOrders.filter(o => ['preparing', 'ready', 'out_for_delivery'].includes(o.status)).length;
+            const completed = allOrders.filter(o => o.status === 'delivered').length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-pending').textContent = pending;
+            document.getElementById('stat-progress').textContent = inProgress;
+            document.getElementById('stat-completed').textContent = completed;
+        }
+
+        // Add activity log entry
+        function addActivityLog(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            activityLog.unshift({ message, type, timestamp });
+            
+            if (activityLog.length > 10) {
+                activityLog = activityLog.slice(0, 10);
+            }
+
+            const logContainer = document.getElementById('activity-log');
+            const colors = {
+                'new': 'bg-blue-50 border-blue-200 text-blue-700',
+                'update': 'bg-green-50 border-green-200 text-green-700',
+                'connect': 'bg-purple-50 border-purple-200 text-purple-700'
+            };
+
+            logContainer.innerHTML = activityLog.map(log => `
+                <div class="flex items-center justify-between p-3 rounded-lg border ${colors[log.type]}">
+                    <p class="font-medium">${log.message}</p>
+                    <span class="text-xs">${log.timestamp}</span>
+                </div>
+            `).join('');
+        }
+
+        // Render orders table
+        function renderOrdersTable() {
+            const filter = document.getElementById('status-filter').value;
+            const filtered = filter === 'all' ? allOrders : allOrders.filter(o => o.status === filter);
+
+            const tbody = document.getElementById('orders-table-body');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No orders found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(order => {
+                const statusColors = {
+                    'pending': 'bg-gray-100 text-gray-700',
+                    'preparing': 'bg-yellow-100 text-yellow-700',
+                    'ready': 'bg-blue-100 text-blue-700',
+                    'out_for_delivery': 'bg-purple-100 text-purple-700',
+                    'delivered': 'bg-green-100 text-green-700'
+                };
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-800">#${order.id}</td>
+                        <td class="px-4 py-3 text-gray-700">${order.customer_name}</td>
+                        <td class="px-4 py-3 text-gray-600 max-w-xs truncate">${order.items}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusColors[order.status]}">
+                                ${order.status.replace('_', ' ').toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${new Date(order.created_at).toLocaleString()}</td>
+                        <td class="px-4 py-3">
+                            <select onchange="updateOrderStatus(${order.id}, this.value)" 
+                                class="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Change Status</option>
+                                <option value="pending" ${order.status === 'pending' ? 'disabled' : ''}>Pending</option>
+                                <option value="preparing" ${order.status === 'preparing' ? 'disabled' : ''}>Preparing</option>
+                                <option value="ready" ${order.status === 'ready' ? 'disabled' : ''}>Ready</option>
+                                <option value="out_for_delivery" ${order.status === 'out_for_delivery' ? 'disabled' : ''}>Out for Delivery</option>
+                                <option value="delivered" ${order.status === 'delivered' ? 'disabled' : ''}>Delivered</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter orders
+        function filterOrders() {
+            renderOrdersTable();
+        }
+
+        // Update order status
+        function updateOrderStatus(orderId, newStatus) {
+            if (!newStatus) return;
+
+            socket.emit('update-order-status', { orderId, status: newStatus }, (response) => {
+                if (response.success) {
+                    showNotification(`Order #${orderId} updated successfully`);
+                } else {
+                    alert('Failed to update order: ' + response.error);
+                }
+            });
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadAllOrders();
+            showNotification('Data refreshed successfully');
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            if (connected) {
+                statusDot.className = 'w-3 h-3 rounded-full bg-green-500';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            notificationText.textContent = message;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 4000);
+        }
+
+        // Play notification sound
+        function playNotificationSound() {
+            const audio = document.getElementById('notification-sound');
+            audio.play().catch(e => console.log('Could not play sound:', e));
+        }
+    </script>
+</body>
+</html>
