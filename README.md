@@ -2,8 +2,9 @@
 
 A real-time order management system built with Node.js, Socket.io, Express, and MySQL. Track orders from placement to delivery with live updates across customer, staff/admin dashboards.
 
-![Customer View](https://github.com/user-attachments/assets/a50fd497-e586-4079-8d5f-3233176324a7)
 ![Admin Dashboard](https://github.com/user-attachments/assets/831563ca-1bc2-4ae8-9939-818159591433)
+
+![Customer View](https://github.com/user-attachments/assets/bdfac013-0eca-47a1-9156-09c85ec0e9c9)
 
 ## 🎥 Demo
 
